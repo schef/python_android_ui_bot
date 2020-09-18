@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import os
+import sys
 from ppadb.client import Client
 from PIL import Image
 import time
@@ -9,10 +10,14 @@ import numpy as np
 import random
 import re
 
+TAB = "    "
+NEW_LINE = "\n"
+
 RANDOM_TRESHOLD = 50
 SCREEN_WIDTH = 1000
 SCREEN_HEIGHT = 1000
 FLAG_DARK_MODE = 1
+ENABLE_CAUGHT_UP = False
 
 def getRandom(num, treshold = RANDOM_TRESHOLD):
     random.randint(num - RANDOM_TRESHOLD, num + RANDOM_TRESHOLD)
@@ -63,6 +68,7 @@ def drawLikeInImage():
 
 def findLikeInImage():
     global FLAG_DARK_MODE
+    global ENABLE_CAUGHT_UP
     locations = []
 
     img_rgb = cv2.imread('screen.png')
@@ -76,19 +82,20 @@ def findLikeInImage():
 
     w, h = template.shape[::-1]
 
-    res = cv2.matchTemplate(img_gray,caughtup,cv2.TM_CCOEFF_NORMED)
-    threshold = 0.8
-    loc = np.where( res >= threshold)
-    for pt in zip(*loc[::-1]):
-        locationFound = False
-        for l in locations:
-            if (abs(pt[0] - l[0]) < 5 and abs(pt[1] - l[1]) < 5):
-                locationFound = True
-        if (not locationFound):
-            locations.append(pt)
+    if(ENABLE_CAUGHT_UP == True):
+        res = cv2.matchTemplate(img_gray,caughtup,cv2.TM_CCOEFF_NORMED)
+        threshold = 0.8
+        loc = np.where( res >= threshold)
+        for pt in zip(*loc[::-1]):
+            locationFound = False
+            for l in locations:
+                if (abs(pt[0] - l[0]) < 5 and abs(pt[1] - l[1]) < 5):
+                    locationFound = True
+            if (not locationFound):
+                locations.append(pt)
 
-    if(locations):
-        quit()
+        if(locations):
+            quit()
 
     res = cv2.matchTemplate(img_gray,template,cv2.TM_CCOEFF_NORMED)
     threshold = 0.6
@@ -130,6 +137,18 @@ def getDarkModeFlag():
     return output
 
 if __name__ == "__main__":
+    if (len(sys.argv) != 2):
+        info = "Usage:" + NEW_LINE
+        info += TAB + "-e enable feature stop liking when \"caught up\" message is hit" + NEW_LINE
+        info += TAB + "-d disable feature stop liking" + NEW_LINE
+        print(info)
+        sys.exit()
+    elif (len(sys.argv) == 2):
+        if (sys.argv[1] == "-e"):
+            ENABLE_CAUGHT_UP = True
+        if (sys.argv[1] == "-d"):
+            ENABLE_CAUGHT_UP = False
+
     device = getAdbDevice()
     SCREEN_WIDTH, SCREEN_HEIGHT = getResolution(device)
     FLAG_DARK_MODE = getDarkModeFlag()
