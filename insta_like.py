@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import os
 from ppadb.client import Client
 from PIL import Image
 import time
@@ -11,6 +12,7 @@ import re
 RANDOM_TRESHOLD = 50
 SCREEN_WIDTH = 1000
 SCREEN_HEIGHT = 1000
+FLAG_DARK_MODE = 1
 
 def getRandom(num, treshold = RANDOM_TRESHOLD):
     random.randint(num - RANDOM_TRESHOLD, num + RANDOM_TRESHOLD)
@@ -60,15 +62,36 @@ def drawLikeInImage():
     cv2.imwrite('result.png',img_rgb)
 
 def findLikeInImage():
+    global FLAG_DARK_MODE
     locations = []
 
     img_rgb = cv2.imread('screen.png')
     img_gray = cv2.cvtColor(img_rgb, cv2.COLOR_BGR2GRAY)
-    template = cv2.imread('like.png',0)
+    if(int(FLAG_DARK_MODE) == 2):
+        template = cv2.imread('like_dark_mode_on.png',0)
+        caughtup = cv2.imread('caught_up_dark_mode_on.png',0)
+    else:
+        template = cv2.imread('like_dark_mode_off.png',0)
+        caughtup = cv2.imread('caught_up_dark_mode_off.png',0)
+
     w, h = template.shape[::-1]
-    
-    res = cv2.matchTemplate(img_gray,template,cv2.TM_CCOEFF_NORMED)
+
+    res = cv2.matchTemplate(img_gray,caughtup,cv2.TM_CCOEFF_NORMED)
     threshold = 0.8
+    loc = np.where( res >= threshold)
+    for pt in zip(*loc[::-1]):
+        locationFound = False
+        for l in locations:
+            if (abs(pt[0] - l[0]) < 5 and abs(pt[1] - l[1]) < 5):
+                locationFound = True
+        if (not locationFound):
+            locations.append(pt)
+
+    if(locations):
+        quit()
+
+    res = cv2.matchTemplate(img_gray,template,cv2.TM_CCOEFF_NORMED)
+    threshold = 0.6
     loc = np.where( res >= threshold)
     for pt in zip(*loc[::-1]):
         locationFound = False
@@ -84,6 +107,7 @@ def findLike(device):
         scrollDown(device)
         time.sleep(1)
         getImage(device)
+
         locations = findLikeInImage()
         print(locations)
         locations.pop()
@@ -100,8 +124,14 @@ def getResolution(device):
     height = resolution.group(2)
     return int(width), int(height)
 
+def getDarkModeFlag():
+    stream = os.popen('adb shell settings get secure ui_night_mode')
+    output = stream.read()
+    return output
+
 if __name__ == "__main__":
     device = getAdbDevice()
     SCREEN_WIDTH, SCREEN_HEIGHT = getResolution(device)
+    FLAG_DARK_MODE = getDarkModeFlag()
     findLike(device)
     
