@@ -6,8 +6,11 @@ import time
 import cv2
 import numpy as np
 import random
+import re
 
 RANDOM_TRESHOLD = 50
+SCREEN_WIDTH = 1000
+SCREEN_HEIGHT = 1000
 
 def getRandom(num, treshold = RANDOM_TRESHOLD):
     random.randint(num - RANDOM_TRESHOLD, num + RANDOM_TRESHOLD)
@@ -28,10 +31,14 @@ def press(device, x, y):
     device.shell('input touchscreen swipe %d %d %d %d %d' % (getRandom(x, 5), getRandom(y, 5), getRandom(x, 5), getRandom(y, 5), getRandom(50)))
     
 def scrollUp(device):
-    device.shell('input touchscreen swipe %d %d %d %d %d' % (getRandom(500), getRandom(500), getRandom(500), getRandom(1000), getRandom(300)))
+    global SCREEN_WIDTH
+    global SCREEN_HEIGHT
+    device.shell('input touchscreen swipe %d %d %d %d %d' % (getRandom(SCREEN_WIDTH*0.5), getRandom(SCREEN_HEIGHT*0.4), getRandom(SCREEN_WIDTH*0.5), getRandom(SCREEN_HEIGHT*0.6), getRandom(300)))
 
 def scrollDown(device):
-    device.shell('input touchscreen swipe %d %d %d %d %d' % (getRandom(500), getRandom(1000), getRandom(500), getRandom(500), getRandom(300)))
+    global SCREEN_WIDTH
+    global SCREEN_HEIGHT
+    device.shell('input touchscreen swipe %d %d %d %d %d' % (getRandom(SCREEN_WIDTH*0.5), getRandom(SCREEN_HEIGHT*0.6), getRandom(SCREEN_WIDTH*0.5), getRandom(SCREEN_HEIGHT*0.4), getRandom(300)))
 
 def getImage(device):
     image = device.screencap()
@@ -85,7 +92,16 @@ def findLike(device):
             press(device, locations[0][0], locations[0][1])
             time.sleep(1)
 
+def getResolution(device):
+    deviceDump = device.shell('dumpsys display')
+    reSearch = ".*deviceWidth=(\d+), deviceHeight=(\d+).*"
+    resolution = re.search(reSearch, deviceDump)
+    width = resolution.group(1)
+    height = resolution.group(2)
+    return int(width), int(height)
+
 if __name__ == "__main__":
     device = getAdbDevice()
-    #press(device, 100, 200)
+    SCREEN_WIDTH, SCREEN_HEIGHT = getResolution(device)
+    findLike(device)
     
