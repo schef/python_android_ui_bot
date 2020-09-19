@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 
-import os
 import sys
 from ppadb.client import Client
 from PIL import Image
@@ -18,6 +17,7 @@ SCREEN_WIDTH = 1000
 SCREEN_HEIGHT = 1000
 FLAG_DARK_MODE = 1
 ENABLE_CAUGHT_UP = False
+PASSWD = 0
 
 def getRandom(num, treshold = RANDOM_TRESHOLD):
     random.randint(num - RANDOM_TRESHOLD, num + RANDOM_TRESHOLD)
@@ -131,26 +131,99 @@ def getResolution(device):
     height = resolution.group(2)
     return int(width), int(height)
 
-def getDarkModeFlag():
-    stream = os.popen('adb shell settings get secure ui_night_mode')
-    output = stream.read()
-    return output
+def getDarkModeFlag(device):
+    stream = device.shell('settings get secure ui_night_mode')
+    if (stream == "1"):
+        return 1
+    else:
+        return 0
+
+def openDevice(device):
+    global PASSWD
+    flag = isDeviceUnlocked(device)
+    if (flag):
+        stream = device.shell('input keyevent 26')
+        time.sleep(1)
+
+    stream = device.shell('input keyevent 26')
+    time.sleep(1)
+    stream = device.shell('input touchscreen swipe %d %d %d %d' % (SCREEN_WIDTH * 0.5, SCREEN_HEIGHT * 0.6, SCREEN_WIDTH * 0.4, SCREEN_HEIGHT * 0.3))
+    time.sleep(1)
+    stream = device.shell('input text ' + PASSWD)
+    time.sleep(1)
+    stream = device.shell('input keyevent 66')
+    time.sleep(1)
+    flag = isDeviceUnlocked(device)
+    return flag
+
+def isDeviceUnlocked(device):
+    deviceDump = device.shell('dumpsys display')
+    reSearch = ".*mScreenState=(\w+).*"
+    screenState = re.search(reSearch, deviceDump)
+    state = screenState.group(1)
+    if (state == "ON"):
+        return 1
+    else:
+        return 0
+
+def startInstagramApp(device):
+    stream = device.shell('am start -n com.instagram.android/.activity.MainTabActivity -c android.intent.category.HOME')
+
+def printCmdList():
+    global NEW_LINE
+    global TAB
+
+    info = "Usage:" + NEW_LINE + NEW_LINE
+    info += "<MANDATORY> commands:" + NEW_LINE
+    info += TAB + "-e/-d" + NEW_LINE
+    info += TAB + TAB + "enable/disable feature stop liking when \"caught up\" message is hit" + NEW_LINE
+    info += "<OPTIONAL> commands:" + NEW_LINE
+    info += TAB + "-a [PASSWD]" + NEW_LINE
+    info += TAB + TAB + "use plug and play feature; needs your phone password [PASSWD]" + NEW_LINE
+    print(info)
+    sys.exit()
 
 if __name__ == "__main__":
-    if (len(sys.argv) != 2):
-        info = "Usage:" + NEW_LINE
-        info += TAB + "-e enable feature stop liking when \"caught up\" message is hit" + NEW_LINE
-        info += TAB + "-d disable feature stop liking" + NEW_LINE
-        print(info)
-        sys.exit()
-    elif (len(sys.argv) == 2):
+
+    if (len(sys.argv) >= 2):
         if (sys.argv[1] == "-e"):
             ENABLE_CAUGHT_UP = True
-        if (sys.argv[1] == "-d"):
+        elif (sys.argv[1] == "-d"):
             ENABLE_CAUGHT_UP = False
+        else:
+            print("Missing <MANDATORY> command!\n")
+            printCmdList()
+            sys.exit()
 
-    device = getAdbDevice()
-    SCREEN_WIDTH, SCREEN_HEIGHT = getResolution(device)
-    FLAG_DARK_MODE = getDarkModeFlag()
-    findLike(device)
-    
+        device = getAdbDevice()
+        SCREEN_WIDTH, SCREEN_HEIGHT = getResolution(device)
+        FLAG_DARK_MODE = getDarkModeFlag(device)
+
+        if (len(sys.argv) == 3):
+            print("Missing data!\n")
+            printCmdList()
+
+        if (len(sys.argv) == 4):
+            if (sys.argv[2] == "-a"):
+                if (sys.argv[3]):
+                    PASSWD = str(sys.argv[3])
+                else:
+                    print("Missing [PASSWD] for automatic mode!\n")
+                    printCmdList()
+                if (openDevice(device)):
+                    time.sleep(1)
+                    startInstagramApp(device)
+            else:
+                print("Not valid command!\n")
+                printCmdList()
+
+    else:
+        print("Missing commands!\n")
+        printCmdList()
+
+    if (isDeviceUnlocked(device)):
+        startInstagramApp(device)
+        time.sleep(1)
+        findLike(device)
+    else:
+        print("Device not unlocked!\n")
