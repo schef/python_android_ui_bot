@@ -73,7 +73,7 @@ def findLikeInImage():
 
     img_rgb = cv2.imread('screen.png')
     img_gray = cv2.cvtColor(img_rgb, cv2.COLOR_BGR2GRAY)
-    if(int(FLAG_DARK_MODE) == 2):
+    if(int(FLAG_DARK_MODE) == 1):
         template = cv2.imread('like_dark_mode_on.png',0)
         caughtup = cv2.imread('caught_up_dark_mode_on.png',0)
     else:
@@ -133,7 +133,7 @@ def getResolution(device):
 
 def getDarkModeFlag(device):
     stream = device.shell('settings get secure ui_night_mode')
-    if (stream == "1"):
+    if (int(stream) == 2):
         return 1
     else:
         return 0
