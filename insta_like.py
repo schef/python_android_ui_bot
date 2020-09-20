@@ -84,7 +84,7 @@ def findLikeInImage():
 
     if(ENABLE_CAUGHT_UP == True):
         res = cv2.matchTemplate(img_gray,caughtup,cv2.TM_CCOEFF_NORMED)
-        threshold = 0.8
+        threshold = 0.6
         loc = np.where( res >= threshold)
         for pt in zip(*loc[::-1]):
             locationFound = False
@@ -117,7 +117,8 @@ def findLike(device):
 
         locations = findLikeInImage()
         print(locations)
-        locations.pop()
+        if (len(locations) == 1):
+            locations.pop()
         if (locations):
             print("Found")
             press(device, locations[0][0], locations[0][1])
@@ -222,7 +223,7 @@ if __name__ == "__main__":
         printCmdList()
 
     if (isDeviceUnlocked(device)):
-        startInstagramApp(device)
+        # startInstagramApp(device)
         time.sleep(1)
         findLike(device)
     else:
