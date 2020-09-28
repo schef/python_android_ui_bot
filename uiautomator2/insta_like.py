@@ -4,16 +4,38 @@ import uiautomator2 as u2
 
 ##### DEVICE start #####
 
-def getDevice(ip = None):
-    device = None
-    if (ip):
-        device = u2.connect("%s" % (ip))
-    else:
-        device = u2.connect()
-    return device
+def getDevice():
+    return u2.connect()
+
+def isScreenOn(device):
+    return device.info.get("screenOn")
+
+def screenOn(device):
+    device.screen_on()
+
+def screenOff(device):
+    device.screen_off()
+
+def screenUnlock(device):
+    device.unlock()
+
+def getScreenWidth(device):
+    return device.info["displayWidth"]
+
+def getScreenHeight(device):
+    return device.info["displayHeight"]
 
 ##### DEVICE end #####
-##### SCREEN INTERACT start #####
+##### UI INTERACT start #####
+
+def pressHome(device):
+    device.press("home")
+
+def pressBack(device):
+    device.press("back")
+
+def pressMenu(device):
+    device.press("menu")
 
 def scrollDown(device):
     device(scrollable=True).scroll.vert.forward(steps=50)
@@ -27,7 +49,40 @@ def scrollTop(device):
 def scrollBottom(device):
     device(scrollable=True).scroll.toEnd()
 
-##### SCREEN INTERACT end #####
+##### UI INTERACT end #####
+##### APP INFO start #####
+
+PACKAGE_NAME = "com.instagram.android"
+
+def isAppInstalled(device):
+    try:
+        return any(device.app_info(PACKAGE_NAME))
+    except:
+        return False
+    
+def isAppRunning(device):
+    return PACKAGE_NAME in device.app_list_running()
+
+def isAppInForeground(device):
+    return device.info["currentPackageName"] == PACKAGE_NAME
+    
+def appStart(device):
+    return device.app_start(PACKAGE_NAME)
+
+def appStop(device):
+    return device.app_stop(PACKAGE_NAME)
+
+def appAutoResume(device):
+    if (not isScreenOn(device)):
+        screenUnlock(device)
+    appStart(device)
+
+def appAutoRestart(device):
+    if isAppRunning(device):
+        appStop(device)
+    appAutoResume(device)
+
+##### APP INFO end #####
 ##### BLOGGER start #####
 
 def getUserName(device):
