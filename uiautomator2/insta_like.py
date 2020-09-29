@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import uiautomator2 as u2
+import time
 
 ##### DEVICE start #####
 
@@ -38,16 +39,35 @@ def pressMenu(device):
     device.press("menu")
 
 def scrollDown(device):
-    device.swipe_ext("up", scale=0.3)
+    device.swipe_ext("up", scale=0.5)
 
 def scrollUp(device):
-    device.swipe_ext("down", scale=0.3)
+    device.swipe_ext("down", scale=0.5)
     
 def scrollTop(device):
     device(scrollable=True).scroll.toBeginning()
 
 def scrollBottom(device):
     device(scrollable=True).scroll.toEnd()
+
+def getSelectorTop(object):
+    return object.info["bounds"]["top"]
+
+def getSelectorBottom(object):
+    return object.info["bounds"]["bottom"]
+
+def scrollSelectorATopToSelectorBBottom(device, selectorA, selectorB):
+    SWIPE_START = 10
+    selectorATop = getSelectorTop(selectorA)
+    selectorBButtom = getSelectorBottom(selectorB) 
+    print("selectorATop[%f], selectorBButtom[%f]" % (selectorATop, selectorBButtom))
+    y = getScreenHeight(device) / 4
+    x = getScreenWidth(device) / 2
+    if (selectorATop > selectorBButtom):
+        device.swipe(x, y + SWIPE_START + selectorATop, x, y + selectorBButtom, 0.1)
+    else:
+        device.swipe(x, y + selectorATop, x, y + SWIPE_START + selectorBButtom, 0.1)
+    print("selectorATop[%f], selectorBButtom[%f]" % (selectorATop, selectorBButtom))
 
 ##### UI INTERACT end #####
 ##### APP INFO start #####
@@ -91,19 +111,22 @@ def isHome(device):
 def homeGo(device):
     device.xpath("//android.widget.FrameLayout[@content-desc='Home']").click()
     
-def getWidgetY(widget):
-    return widget.center()[1]
+def getActionBar(device):
+    objects = device(className="android.widget.FrameLayout", resourceId="com.instagram.android:id/action_bar_container")
+    if len(objects):
+        return objects[0]
+    return []
 
 def getProfiles(device):
-    profiles = device(className="android.widget.TextView", resourceId="com.instagram.android:id/row_feed_photo_profile_name")
-    if (len(profiles)):
-        return profiles
+    selectors = device(className="android.widget.TextView", resourceId="com.instagram.android:id/row_feed_photo_profile_name")
+    if (len(selectors)):
+        return selectors
     return []
 
 def getTopProfile(device):
-    profiles = getProfiles(device)
-    if len(profiles):
-        return profiles[0]
+    selectors = getProfiles(device)
+    if len(selectors):
+        return selectors[0]
     return None
 
 def getNextProfile(device, profile):
@@ -115,9 +138,10 @@ def getNextProfile(device, profile):
 def getProfileName(profile):
     return profile.info["text"]
 
+
 def swipeProfileToTop(device, profile):
     HEADER_OFFSET = 150
-    profile.swipe_ext("up", box=(100, 500, 100, 500+))
+    profile.swipe_ext("up", box=(100, 500, 100, 500))
 
 def isProfileSponsored(profile):
     sibling = profile.sibling(text="Sponsored")
