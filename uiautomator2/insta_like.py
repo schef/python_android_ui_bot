@@ -57,16 +57,13 @@ def getSelectorBottom(object):
     return object.info["bounds"]["bottom"]
 
 def scrollSelectorATopToSelectorBBottom(device, selectorA, selectorB):
-    SWIPE_START = 10
     selectorATop = getSelectorTop(selectorA)
     selectorBButtom = getSelectorBottom(selectorB) 
     print("selectorATop[%f], selectorBButtom[%f]" % (selectorATop, selectorBButtom))
     y = getScreenHeight(device) / 4
     x = getScreenWidth(device) / 2
-    if (selectorATop > selectorBButtom):
-        device.swipe(x, y + SWIPE_START + selectorATop, x, y + selectorBButtom, 0.1)
-    else:
-        device.swipe(x, y + selectorATop, x, y + SWIPE_START + selectorBButtom, 0.1)
+    timeout = int((selectorATop - selectorBButtom) * 1.5)
+    device.shell("input touchscreen swipe %d %d %d %d %d" % (x, selectorATop, x, selectorBButtom, timeout))
     print("selectorATop[%f], selectorBButtom[%f]" % (selectorATop, selectorBButtom))
 
 ##### UI INTERACT end #####
@@ -93,6 +90,7 @@ def appStop(device):
     return device.app_stop(PACKAGE_NAME)
 
 def appAutoResume(device):
+    screenOff(device)
     if (not isScreenOn(device)):
         screenUnlock(device)
     appStart(device)
@@ -130,18 +128,13 @@ def getTopProfile(device):
     return None
 
 def getNextProfile(device, profile):
-    for widget in getProfiles(device):
-        if getWidgetY(widget) > getWidgetY(profile):
-            return widget 
+    for selector in getProfiles(device):
+        if getSelectorTop(selector) > getSelectorTop(profile):
+            return selector 
     return None
 
 def getProfileName(profile):
     return profile.info["text"]
-
-
-def swipeProfileToTop(device, profile):
-    HEADER_OFFSET = 150
-    profile.swipe_ext("up", box=(100, 500, 100, 500))
 
 def isProfileSponsored(profile):
     sibling = profile.sibling(text="Sponsored")
